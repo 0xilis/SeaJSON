@@ -221,7 +221,6 @@ unsigned long get_int(seajson json, const char *value) {
   return NULL;
 }
 
-/* WIP - To be implemented eventually :P */
 seajson get_dictionary(seajson json, const char *value) {
   unsigned long jsonSize = strlen(json);
   pathway pathwayCache = init_json_pathway_cache(jsonSize);
