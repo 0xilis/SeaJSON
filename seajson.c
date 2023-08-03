@@ -520,6 +520,146 @@ void free_jarray(jarray array) {
   free(array.arrayString);
 }
 
+seajson remove_whitespace_from_json(seajson json) {
+  unsigned long jsonSize = strlen(json);
+  char* returnJson = malloc(sizeof(char) * jsonSize);
+  int inception = 0;
+  int inceptionInString = 0;
+  int returnJsonIndex = 0;
+  for (int i = 0; i < jsonSize; i++) {
+    char currentChar = json[i];
+    if (inceptionInString == 0) {
+      if (currentChar == '{') {
+        inception++;
+      } else if (currentChar == '}') {
+        inception--;
+      } else if (currentChar == '\"') {
+        inceptionInString = 1;
+      } else if (currentChar == '[') {
+        inception++;
+      } else if (currentChar == ']') {
+        inception--;
+      }
+    } else {
+      /* We are currently reading chars in a string obj */
+      if (currentChar == '\"') {
+        /* If \" then cancel out */
+        if (json[i-1] != '\\') {
+          inceptionInString = 0;
+        }
+      }
+    }
+    
+    if (!inceptionInString) {
+      /* Newline */
+      if (currentChar == '\n') {
+        continue;
+      }
+      /* Space */
+      if (currentChar == ' ') {
+        continue;
+      }
+      /* Tab (i think) */
+      if (currentChar == ' ') {
+        continue;
+      }
+    }
+    returnJson[returnJsonIndex] = currentChar;
+    returnJson[returnJsonIndex+1] = '\0';
+    returnJsonIndex++;
+  }
+  return returnJson;
+}
+
+jarray remove_whitespace_from_jarray(jarray array) {
+  if (array.isValid == 0) {
+    fprintf(stderr, "SeaJSON Error: Non-valid jarray passed into removeWhitespaceFromJarray.\n");
+    exit(1);
+  }
+  char* arrayString = array.arrayString;
+  unsigned long arrStrSize = strlen(arrayString);
+  char* returnJarrayString = malloc(sizeof(char) * arrStrSize);
+  int inception = 0;
+  int inceptionInString = 0;
+  int returnJarrayStrIndex = 0;
+  for (int i = 0; i < arrStrSize; i++) {
+    char currentChar = arrayString[i];
+    if (inceptionInString == 0) {
+      if (currentChar == '{') {
+        inception++;
+      } else if (currentChar == '}') {
+        inception--;
+      } else if (currentChar == '\"') {
+        inceptionInString = 1;
+      } else if (currentChar == '[') {
+        inception++;
+      } else if (currentChar == ']') {
+        inception--;
+      }
+    } else {
+      /* We are currently reading chars in a string obj */
+      if (currentChar == '\"') {
+        /* If \" then cancel out */
+        if (arrayString[i-1] != '\\') {
+          inceptionInString = 0;
+        }
+      }
+    }
+    
+    if (!inceptionInString) {
+      /* Newline */
+      if (currentChar == '\n') {
+        continue;
+      }
+      /* Space */
+      if (currentChar == ' ') {
+        continue;
+      }
+      /* Tab (i think) */
+      if (currentChar == ' ') {
+        continue;
+      }
+    }
+    returnJarrayString[returnJarrayStrIndex] = currentChar;
+    returnJarrayString[returnJarrayStrIndex+1] = '\0';
+    returnJarrayStrIndex++;
+  }
+  jarray returnJarray;
+  returnJarray.itemCount = array.itemCount;
+  returnJarray.isValid = array.isValid;
+  returnJarray.arrayString = returnJarrayString;
+  return returnJarray;
+}
+
+char* get_string_from_jarray(jarray array, int index) {
+  char* rawItem = get_item_from_jarray(array, index);
+  unsigned long rawItemLen = strlen(rawItem);
+  if (rawItem[0] == '\"') {
+    if (rawItem[rawItemLen - 1] == '\"') {
+      /* Cut the beginning and ending " */
+      char *start = &rawItem[1];
+      char *end = &rawItem[rawItemLen - 1];
+      /* Note the + 1 here, to have a null terminated substring */
+      char *substr = (char *)calloc(1, end - start + 1);
+      memcpy(substr, start, end - start);
+      return substr;
+    }
+  }
+  return rawItem;
+}
+
+int get_int_from_jarray(jarray array, int index) {
+  char* rawItem = get_item_from_jarray(array, index);
+  unsigned long stringNumberLen = strlen(rawItem);
+  int returnInt = 0;
+  for (int i = 0; i < stringNumberLen; i++) {
+    char currentChar = rawItem[i];
+    returnInt *= 10;
+    returnInt += currentChar - '0';
+  }
+  return returnInt;
+}
+
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */
 char * getstring(char *funckey, char *dict) {
   printf("WARNING!!! THIS FUNCTION IS DEPRECATED AND IS INTENDED HERE ONLY FOR BACKWARDS COMPATIBILITY WITH THE OLD SEAJSON. THIS IS NOT SAFE AND BUGGY, USE get_string() INSTEAD!!! DO NOT USE THIS!!!\n");
@@ -637,5 +777,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 2;
+  return 3;
 }

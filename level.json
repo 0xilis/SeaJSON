@@ -1,1 +1,1 @@
-{"zone_name":"test_zone","zone_id":0,"platform_count":11,"platforms":[{"object_type":"generic_platform","object_id":0,"point":[220, 460, 200, 20]},{"object_type":"generic_platform","object_id":0,"point":[420, 410, 200, 20]}],"starting_point":{"x":0,"y":0}}
+{"zone_name":"test_zone","zone_id":0,"platform_count":11,"platforms":[{"object_type":"generic_platform","object_id":0,"point":[220, 460, 200, 20]},{"object_type":"generic_platform","object_id":0,"point":[420, 410, 200, 20]}],"starting_point":{"x":0,"y":0},"demo_array_of_strings":["obj0","obj1","obj2"]}

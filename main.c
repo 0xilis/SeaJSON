@@ -33,11 +33,29 @@ int main(void) {
     printf("platforms.isValid: %d\n",platforms.isValid);
   } else {
     printf("error: platforms is not a valid jarray, SeaJSON likely had an error retrieving the dictionary\n");
+    return -1;
   }
-  char* firstPlatformRaw = get_item_from_jarray(platforms, 0);
-  printf("firstPlatformRaw: %s\n",firstPlatformRaw);
-  free(firstPlatformRaw);
+  jarray platformsNoWhitespace = remove_whitespace_from_jarray(platforms);
+  /* It's always a good idea to free the passed in jarray into remove_whitespace_from_jarray assuming you don't plan on using the jarray with whitespace */
   free_jarray(platforms);
+  printf("platformsNoWhitespace: %s\n",platformsNoWhitespace.arrayString);
+  char* firstPlatformRaw = get_item_from_jarray(platformsNoWhitespace, 0);
+  printf("firstPlatformRaw: %s\n",firstPlatformRaw);
+  jarray arrayOfStrings = get_array(json, "demo_array_of_strings");
+  char* item1 = get_string_from_jarray(arrayOfStrings, 1);
+  printf("item1: %s\n",item1);
+  jarray platformPoints = get_array(firstPlatformRaw, "point");
+  if (platformPoints.isValid == 0) {
+    fprintf(stderr, "failed getting point info");
+    exit(1);
+  }
+  int platformYPoint = get_int_from_jarray(platformPoints, 1);
+  printf("platformYPoint: %d\n",platformYPoint);
+  free_jarray(platformPoints);
+  free(item1);
+  free_jarray(arrayOfStrings);
+  free(firstPlatformRaw);
+  free_jarray(platformsNoWhitespace);
   free(startingPoint);
   free(stringValue);
   free_json(json);
