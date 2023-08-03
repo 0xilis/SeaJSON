@@ -15,6 +15,12 @@
 
 #define seajson char*
 
+typedef struct {
+  int itemCount;
+  char* arrayString;
+  int isValid;
+} jarray;
+
 /* JSON Pathway Cache Types */
 
 #define DICTIONARY_START 1
@@ -29,6 +35,9 @@ void free_json(seajson json);
 char* get_string(seajson json, const char *value);
 unsigned long get_int(seajson json, const char *value);
 seajson get_dictionary(seajson json, const char *value);
+jarray get_array(seajson json, const char *value);
+char* get_item_from_jarray(jarray array, int index);
+void free_jarray(jarray array);
 int seaJSONBuildVersion(void);
 
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */

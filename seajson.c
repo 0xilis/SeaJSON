@@ -230,6 +230,8 @@ seajson get_dictionary(seajson json, const char *value) {
   int stringWaitingConformation = 0;
   int valueFound = 0;
   char* returnString = malloc(sizeof(char) * jsonSize + 1);
+  int inception = 0;
+  int inceptionInString = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
     char prev = prevCachedAuto;
@@ -266,7 +268,7 @@ seajson get_dictionary(seajson json, const char *value) {
         continue;
       }
     } else if (currentChar == '}') {
-      if (valueFound == 1) {
+      if (valueFound == 1 && inception == 1 && inceptionInString == 0) {
         /* We are on the ending } so we got our json */
         /* Append ourselves to the end of the string then ret */
         returnString[stringProgress] = '}';
@@ -284,6 +286,27 @@ seajson get_dictionary(seajson json, const char *value) {
       returnString[stringProgress] = currentChar;
       returnString[stringProgress + 1] = '\0';
       stringProgress++;
+      if (inceptionInString == 0) {
+        if (currentChar == '{') {
+          inception++;
+        } else if (currentChar == '}') {
+          inception--;
+        } else if (currentChar == '\"') {
+          inceptionInString = 1;
+        } else if (currentChar == '[') {
+          inception++;
+        } else if (currentChar == ']') {
+          inception--;
+        }
+      } else {
+        /* We are currently reading chars in a string obj */
+        if (currentChar == '\"') {
+          /* If \" then cancel out */
+          if (json[i-1] != '\\') {
+            inceptionInString = 0;
+          }
+        }
+      }
     } else if (prev == STRING_START) {
       if (stringProgress > strlen(value)) {
         /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
@@ -300,6 +323,201 @@ seajson get_dictionary(seajson json, const char *value) {
   free(returnString);
   free_json_pathway_cache(pathwayCache);
   return NULL;
+}
+
+jarray get_array(seajson json, const char *value) {
+  unsigned long jsonSize = strlen(json);
+  pathway pathwayCache = init_json_pathway_cache(jsonSize);
+  int pathwayPos = 0;
+  char* readString = malloc(sizeof(char) * strlen(value) + 1);
+  int stringProgress = 0;
+  int stringWaitingConformation = 0;
+  int valueFound = 0;
+  char* returnString = malloc(sizeof(char) * jsonSize + 1);
+  int inception = 0;
+  int inceptionInString = 0;
+  int itemCount = 0;
+  for (int i = 0; i < jsonSize; i++) {
+    char currentChar = json[i];
+    char prev = prevCachedAuto;
+    if (currentChar == '{') {
+      if (prev != STRING_START) {
+        CASH DICTIONARY_START;
+        CASHUP
+      }
+    } else if (currentChar == '\"') {
+      if (prev == STRING_START) {
+        if (stringProgress == strlen(value)) {
+          if (strcmp(value,readString) == 0) {
+            /* We might have just found the string! */
+            stringWaitingConformation = 1;
+          }
+        }
+        CASH STRING_END;
+        CASHUP
+      } else {
+        if (valueFound == 0) {
+          stringProgress = 0;
+          stringWaitingConformation = 0;
+        }
+        CASH STRING_START;
+        CASHUP
+      }
+    } else if (currentChar == ':') {
+      if (prev == STRING_END && stringWaitingConformation == 1) {
+        /* HOLY FUCK, we found the string!! */
+        valueFound = 1;
+        stringProgress = 0;
+        stringWaitingConformation = 0;
+        /* continue so the : will not be added to start */
+        continue;
+      }
+    } else if (currentChar == ']') {
+      if (valueFound == 1 && inception == 1 && inceptionInString == 0) {
+        /* We are on the ending } so we got our json */
+        /* Append ourselves to the end of the string then ret */
+        returnString[stringProgress] = ']';
+        returnString[stringProgress+1] = '\0';
+        free(readString);
+        free_json_pathway_cache(pathwayCache);
+        jarray jsonArray;
+        jsonArray.itemCount = itemCount;
+        jsonArray.arrayString = returnString;
+        jsonArray.isValid = 1;
+        return jsonArray;
+      }
+    }
+    /*
+    Remember that if user passes in something like "Apples"
+    Don't just search for apples, as 
+    */
+    if (valueFound) {
+      returnString[stringProgress] = currentChar;
+      returnString[stringProgress + 1] = '\0';
+      stringProgress++;
+      if (inceptionInString == 0) {
+        if (currentChar == '{') {
+          inception++;
+        } else if (currentChar == '}') {
+          inception--;
+        } else if (currentChar == '\"') {
+          inceptionInString = 1;
+        } else if (currentChar == '[') {
+          inception++;
+          if (inception == 1) {
+            if (itemCount == 0) {
+              itemCount++;
+            }
+          }
+        } else if (currentChar == ']') {
+          inception--;
+        } else if (currentChar == ',') {
+          /* Make sure the , is not inside of {}/[] */
+          if (inception == 1) {
+            itemCount++;
+          }
+        }
+      } else {
+        /* We are currently reading chars in a string obj */
+        if (currentChar == '\"') {
+          /* If \" then cancel out */
+          if (json[i-1] != '\\') {
+            inceptionInString = 0;
+          }
+        }
+      }
+    } else if (prev == STRING_START) {
+      if (stringProgress > strlen(value)) {
+        /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
+        stringProgress = 0;
+        stringWaitingConformation = 0;
+      } else {
+        readString[stringProgress] = currentChar;
+        readString[stringProgress + 1] = '\0';
+        stringProgress++;
+      }
+    }
+  }
+  free(readString);
+  free(returnString);
+  free_json_pathway_cache(pathwayCache);
+  jarray error;
+  error.itemCount = 0;
+  /* Set isValid to 0 since this is an error and not a valid jarray */
+  error.isValid = 0;
+  return error;
+}
+
+/* This is a very WIP function, it does not allow JSONs such that are formatted with new lines or spaces in the slightest currently - either convert a JSON to not have whitespace and then do rest of the function or modify the function to behave differently. */
+char* get_item_from_jarray(jarray array, int index) {
+  if (array.isValid == 0) {
+    fprintf(stderr, "SeaJSON Error: Non-valid jarray passed into get_item_from_array.\n");
+    exit(1);
+  }
+  if (array.itemCount <= 0) {
+    fprintf(stderr, "SeaJSON Error: jarray with 0 or less items passed into get_item_from_array.\n");
+    exit(1);
+  }
+  if (index > array.itemCount) {
+    fprintf(stderr,"SeaJSON Error: Requested OOB index from jarray.\n");
+    exit(1);
+  }
+  char *arrayString = array.arrayString;
+  unsigned long arrStrLen = strlen(arrayString);
+  int itemIndex = 0;
+  char* returnItem = malloc(sizeof(char) * arrStrLen);
+  int returnItemIndex = 0;
+  int inception = 0;
+  int inceptionInString = 0;
+  /* Skip the first item since it will just be a [ */
+  for (int i = 1; i < arrStrLen; i++) {
+    char currentChar = arrayString[i];
+    if (inceptionInString == 0) {
+      if (currentChar == '{') {
+        inception++;
+      } else if (currentChar == '}') {
+        inception--;
+      } else if (currentChar == '\"') {
+        inceptionInString = 1;
+      } else if (currentChar == '[') {
+        inception++;
+      } else if (currentChar == ']') {
+        inception--;
+      }
+    } else {
+      /* We are currently reading chars in a string obj */
+      if (currentChar == '\"') {
+        /* If \" then cancel out */
+        if (arrayString[i-1] != '\\') {
+          inceptionInString = 0;
+        }
+      }
+    }
+    if (itemIndex == index) {
+      returnItem[returnItemIndex] = currentChar;
+      returnItem[returnItemIndex+1] = '\0';
+      returnItemIndex++;
+      char futureChar = arrayString[i+1];
+      if ((futureChar == ',' && inception == 0 && inceptionInString == 0) || (i+1) == (strlen(arrayString)-1)) {
+        return returnItem;
+      }
+    }
+    char futureChar = arrayString[i+1];
+    if ((i+1) == (strlen(arrayString)-1)) {
+      fprintf(stderr, "SeaJSON Error: Failed to find item in array.\n");
+      exit(1);
+    }
+    if (futureChar == ',' && inception == 0 && inceptionInString == 0) {
+      i++;
+      itemIndex++;
+    }
+  }
+  free(returnItem);
+  return NULL;
+}
+
+void free_jarray(jarray array) {
+  free(array.arrayString);
 }
 
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */
@@ -419,5 +637,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 1;
+  return 2;
 }

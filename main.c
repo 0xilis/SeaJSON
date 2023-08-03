@@ -26,6 +26,18 @@ int main(void) {
   printf("platform_count: %ld\n",platformCount);
   seajson startingPoint = get_dictionary(json, "starting_point");
   printf("starting_point: %s\n",startingPoint);
+  jarray platforms = get_array(json, "platforms");
+  if (platforms.isValid) {
+    printf("platforms.arrayString: %s\n",platforms.arrayString);
+    printf("platforms.itemCount: %d\n",platforms.itemCount);
+    printf("platforms.isValid: %d\n",platforms.isValid);
+  } else {
+    printf("error: platforms is not a valid jarray, SeaJSON likely had an error retrieving the dictionary\n");
+  }
+  char* firstPlatformRaw = get_item_from_jarray(platforms, 0);
+  printf("firstPlatformRaw: %s\n",firstPlatformRaw);
+  free(firstPlatformRaw);
+  free_jarray(platforms);
   free(startingPoint);
   free(stringValue);
   free_json(json);
