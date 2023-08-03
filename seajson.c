@@ -61,7 +61,7 @@ void free_json_pathway_cache(pathway pathwayCache) {
 char prevCached(pathway pathwayCache, int pathwayPos) {
   if (pathwayPos < 1) {
     /*fprintf(stderr, "SeaJSON Error: Under 1 value passed into prevCached().");*/
-    return NULL;
+    return 0;
   }
   return pathwayCache[pathwayPos-1];
 }
@@ -218,7 +218,7 @@ unsigned long get_int(seajson json, const char *value) {
   }
   free(readString);
   free_json_pathway_cache(pathwayCache);
-  return NULL;
+  return 0;
 }
 
 seajson get_dictionary(seajson json, const char *value) {
@@ -783,11 +783,6 @@ jarray add_item_to_jarray(jarray array, char* item) {
     fprintf(stderr, "SeaJSON Error: Failed to find end of jarray (add_item_to_jarray).");
     exit(1);
   }
-  /*char *start = &rawItem[1];
-  char *end = &rawItem[rawItemLen - 1];
-  /* Note the + 1 here, to have a null terminated substring */
-  /*char *substr = (char *)calloc(1, end - start + 1);
-  memcpy(substr, start, end - start);*/
   return array;
 }
 
@@ -799,7 +794,6 @@ char * getstring(char *funckey, char *dict) {
     /* Access each char in the string */
     funckey1[i] = funckey[i];
   }
-  int i = 0;
   char test[strlen(dict)];
   for (size_t i = 0; i < strlen(dict); i++) {
     /* Access each char in the string */
@@ -908,5 +902,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 4;
+  return 5;
 }
