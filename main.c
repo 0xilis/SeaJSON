@@ -51,6 +51,12 @@ int main(void) {
   }
   int platformYPoint = get_int_from_jarray(platformPoints, 1);
   printf("platformYPoint: %d\n",platformYPoint);
+  jarray platformPointsMinusY = remove_item_of_jarray(platformPoints, 1);
+  printf("platformPointsMinusY: %s\n",platformPointsMinusY.arrayString);
+  free_jarray(platformPointsMinusY);
+  jarray platformPointsPlusExtra = add_item_to_jarray(platformPoints, "0");
+  printf("platformPointsPlusExtra: %s\n",platformPointsPlusExtra.arrayString);
+  free_jarray(platformPointsPlusExtra);
   free_jarray(platformPoints);
   free(item1);
   free_jarray(arrayOfStrings);
@@ -59,5 +65,17 @@ int main(void) {
   free(startingPoint);
   free(stringValue);
   free_json(json);
+  jarray testBlankJarray;
+  testBlankJarray.isValid = 1;
+  testBlankJarray.itemCount = 0;
+  char* blankArrayString = malloc(sizeof(char) * 3);
+  blankArrayString[0] = '[';
+  blankArrayString[1] = ']';
+  blankArrayString[2] = '\0';
+  testBlankJarray.arrayString = blankArrayString;
+  jarray newJarrayWithItem = add_item_to_jarray(testBlankJarray,"hello");
+  printf("newJarrayWithItem: %s\n",newJarrayWithItem.arrayString);
+  free_jarray(testBlankJarray);
+  free_jarray(newJarrayWithItem);
   return 0;
 }

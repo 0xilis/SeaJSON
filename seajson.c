@@ -657,7 +657,138 @@ int get_int_from_jarray(jarray array, int index) {
     returnInt *= 10;
     returnInt += currentChar - '0';
   }
+  free(rawItem);
   return returnInt;
+}
+
+jarray remove_item_of_jarray(jarray array, int index) {
+  if (array.isValid == 0) {
+    fprintf(stderr, "SeaJSON Error: Non-valid jarray passed into remove_item_of_jarray.\n");
+    exit(1);
+  }
+  if (array.itemCount <= 0) {
+    fprintf(stderr, "SeaJSON Error: jarray with 0 or less items passed into remove_item_of_jarray.\n");
+    exit(1);
+  }
+  if (index > array.itemCount) {
+    fprintf(stderr,"SeaJSON Error: Requested OOB index from jarray (remove_item_of_jarray).\n");
+    exit(1);
+  }
+  char *arrayString = array.arrayString;
+  unsigned long arrStrLen = strlen(arrayString);
+  int itemIndex = 0;
+  char* returnItem = malloc(sizeof(char) * arrStrLen);
+  int returnItemIndex = 0;
+  int inception = 0;
+  int inceptionInString = 0;
+  /* Skip the first item since it will just be a [ */
+  for (int i = 0; i < arrStrLen; i++) {
+    char currentChar = arrayString[i];
+    if (inceptionInString == 0) {
+      if (currentChar == '{') {
+        inception++;
+      } else if (currentChar == '}') {
+        inception--;
+      } else if (currentChar == '\"') {
+        inceptionInString = 1;
+      } else if (currentChar == '[') {
+        inception++;
+      } else if (currentChar == ']') {
+        inception--;
+      }
+    } else {
+      /* We are currently reading chars in a string obj */
+      if (currentChar == '\"') {
+        /* If \" then cancel out */
+        if (arrayString[i-1] != '\\') {
+          inceptionInString = 0;
+        }
+      }
+    }
+    if (itemIndex != index) {
+      returnItem[returnItemIndex] = currentChar;
+      returnItem[returnItemIndex+1] = '\0';
+      returnItemIndex++;
+    }
+    char futureChar = arrayString[i+1];
+    if ((i+1) == (strlen(arrayString)-1)) {
+      returnItem[returnItemIndex] = futureChar;
+      returnItem[returnItemIndex+1] = '\0';
+      jarray newJarray;
+      newJarray.itemCount = array.itemCount - 1;
+      newJarray.isValid = array.isValid;
+      newJarray.arrayString = returnItem;
+      return newJarray;
+    }
+    if (futureChar == ',' && inception == 1 && inceptionInString == 0) {
+      i++;
+      itemIndex++;
+      if (itemIndex != index) {
+        returnItem[returnItemIndex] = ',';
+        returnItem[returnItemIndex+1] = '\0';
+        returnItemIndex++;
+      }
+    }
+  }
+  free(returnItem);
+  printf("SeaJSON Error: remove_item_of_jarray has encounter a problem. Returning original jarray...\n");
+  return array;
+}
+
+jarray add_item_to_jarray(jarray array, char* item) {
+  if (array.isValid == 0) {
+    fprintf(stderr, "SeaJSON Error: Non-valid jarray passed into add_item_to_jarray.\n");
+    exit(1);
+  }
+  char *arrayString = array.arrayString;
+  unsigned long arrStrLen = strlen(arrayString);
+  if (arrayString[arrStrLen - 1] == ']' && arrayString[0] == '[') {
+    unsigned long itemLen = strlen(item);
+    if (arrStrLen == 2) {
+      /* A blank jarray has been passed in */
+      char* returnItem = malloc(sizeof(char) * (3 + itemLen));
+      returnItem[0] = '[';
+      /*
+      I was gonna do strncat(returnItem, item, strlen(item));
+      But for some reason that seems buggy
+      */
+      for (int i = 0; i < itemLen; i++) {
+        returnItem[i+1] = item[i];
+      }
+      returnItem[itemLen+1] = ']';
+      returnItem[itemLen+2] = '\0';
+      jarray newJarray;
+      newJarray.arrayString = returnItem;
+      newJarray.isValid = 1;
+      newJarray.itemCount = 1;
+      return newJarray;
+    } else {
+      char* returnItem = malloc(sizeof(char) * (arrStrLen + strlen(item) + 2));
+      for (int i = 0; i < arrStrLen; i++) {
+        returnItem[i] = arrayString[i];
+      }
+      returnItem[arrStrLen-1] = ',';
+      for (int i = 0; i < itemLen; i++) {
+        returnItem[arrStrLen+i] = item[i];
+      }
+      returnItem[arrStrLen+itemLen] = ']';
+      returnItem[arrStrLen+itemLen+1] = '\0';
+      jarray newJarray;
+      newJarray.itemCount = array.itemCount + 1;
+      newJarray.arrayString = returnItem;
+      newJarray.isValid = 1;
+      return newJarray;
+    }
+  } else {
+    fprintf(stderr, "SeaJSON Error: Failed to find end of jarray (add_item_to_jarray).");
+    exit(1);
+  }
+  /*char *start = &rawItem[1];
+  char *end = &rawItem[rawItemLen - 1];
+  /* Note the + 1 here, to have a null terminated substring */
+  /*char *substr = (char *)calloc(1, end - start + 1);
+  memcpy(substr, start, end - start);*/
+  return array;
 }
 
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */
@@ -777,5 +908,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 3;
+  return 4;
 }

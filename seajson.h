@@ -42,6 +42,9 @@ seajson remove_whitespace_from_json(seajson json);
 jarray remove_whitespace_from_jarray(jarray array);
 char* get_string_from_jarray(jarray array, int index);
 int get_int_from_jarray(jarray array, int index);
+jarray add_item_to_jarray(jarray array, char* item);
+/* Maybe soon: jarray set_item_of_jarray(jarray array, int index, char* item); */
+jarray remove_item_of_jarray(jarray array, int index);
 int seaJSONBuildVersion(void);
 
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */
