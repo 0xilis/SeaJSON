@@ -652,10 +652,18 @@ int get_int_from_jarray(jarray array, int index) {
   char* rawItem = get_item_from_jarray(array, index);
   unsigned long stringNumberLen = strlen(rawItem);
   int returnInt = 0;
+  int isNeg = 0;
   for (int i = 0; i < stringNumberLen; i++) {
     char currentChar = rawItem[i];
-    returnInt *= 10;
-    returnInt += currentChar - '0';
+    if (currentChar == '-') {
+      isNeg = 1;
+    } else {
+      returnInt *= 10;
+      returnInt += currentChar - '0';
+    }
+  }
+  if (isNeg) {
+    returnInt *= -1;
   }
   free(rawItem);
   return returnInt;
@@ -902,5 +910,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 5;
+  return 6;
 }
