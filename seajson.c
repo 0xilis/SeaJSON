@@ -70,13 +70,13 @@ char prevCached(pathway pathwayCache, int pathwayPos) {
 #define CASHUP pathwayPos++;
 #define prevCachedAuto prevCached(pathwayCache, pathwayPos)
 
+/* TODO: support \'s in strings */
 char* get_string(seajson json, const char *value) {
   unsigned long jsonSize = strlen(json);
   pathway pathwayCache = init_json_pathway_cache(jsonSize);
   int pathwayPos = 0;
   char* readString = malloc(sizeof(char) * strlen(value) + 1);
   int stringProgress = 0;
-  int stringWaitingConformation = 0;
   int valueFound = 0;
   char* returnString = malloc(sizeof(char) * jsonSize + 1);
   for (int i = 0; i < jsonSize; i++) {
@@ -89,30 +89,27 @@ char* get_string(seajson json, const char *value) {
       }
     } else if (currentChar == '\"') {
       if (prev == STRING_START) {
-        if (stringProgress == strlen(value)) {
-          if (strcmp(value,readString) == 0) {
-            /* We might have just found the string! */
-            stringWaitingConformation = 1;
-          }
-        }
         if (valueFound == 1) {
           /* We are on the ending " so we got our string */
           free(readString);
           free_json_pathway_cache(pathwayCache);
           return returnString;
         }
+        if (stringProgress == strlen(value)) {
+          if (strcmp(value,readString) == 0) {
+            /* We might have just found the string! */
+            if (json[i+1] == ':') {
+              valueFound = 1;
+              i++;
+            }
+          }
+        }
         CASH STRING_END;
         CASHUP
       } else {
         stringProgress = 0;
-        stringWaitingConformation = 0;
         CASH STRING_START;
         CASHUP
-      }
-    } else if (currentChar == ':') {
-      if (prev == STRING_END && stringWaitingConformation == 1) {
-        /* HOLY FUCK, we found the string!! */
-        valueFound = 1;
       }
     }
     /*
@@ -120,14 +117,13 @@ char* get_string(seajson json, const char *value) {
     Don't just search for apples, as 
     */
     if (prev == STRING_START) {
-      if (stringProgress > strlen(value)) {
-        /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
-        stringProgress = 0;
-        stringWaitingConformation = 0;
-      } else if (valueFound) {
+      if (valueFound) {
         returnString[stringProgress] = currentChar;
         returnString[stringProgress + 1] = '\0';
         stringProgress++;
+      } else if (stringProgress > strlen(value)) {
+        /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
+        stringProgress = 0;
       } else {
         readString[stringProgress] = currentChar;
         readString[stringProgress + 1] = '\0';
@@ -147,7 +143,6 @@ unsigned long get_int(seajson json, const char *value) {
   int pathwayPos = 0;
   char* readString = malloc(sizeof(char) * strlen(value) + 1);
   int stringProgress = 0;
-  int stringWaitingConformation = 0;
   int valueFound = 0;
   unsigned long returnInt = 0;
   for (int i = 0; i < jsonSize; i++) {
@@ -160,25 +155,22 @@ unsigned long get_int(seajson json, const char *value) {
       }
     } else if (currentChar == '\"') {
       if (prev == STRING_START) {
+        CASH STRING_END;
+        CASHUP
         if (stringProgress == strlen(value)) {
           if (strcmp(value,readString) == 0) {
             /* We might have just found the string! */
-            stringWaitingConformation = 1;
+            if (json[i+1] == ':') {
+              valueFound = 1;
+              i++;
+              continue;
+            }
           }
         }
-        CASH STRING_END;
-        CASHUP
       } else {
         stringProgress = 0;
-        stringWaitingConformation = 0;
         CASH STRING_START;
         CASHUP
-      }
-    } else if (currentChar == ':') {
-      if (prev == STRING_END && stringWaitingConformation == 1) {
-        /* HOLY FUCK, we found the string!! */
-        valueFound = 1;
-        continue;
       }
     }
     /*
@@ -208,7 +200,6 @@ unsigned long get_int(seajson json, const char *value) {
       if (stringProgress > strlen(value)) {
         /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
         stringProgress = 0;
-        stringWaitingConformation = 0;
       } else if (valueFound == 0) {
         readString[stringProgress] = currentChar;
         readString[stringProgress + 1] = '\0';
@@ -227,7 +218,6 @@ seajson get_dictionary(seajson json, const char *value) {
   int pathwayPos = 0;
   char* readString = malloc(sizeof(char) * strlen(value) + 1);
   int stringProgress = 0;
-  int stringWaitingConformation = 0;
   int valueFound = 0;
   char* returnString = malloc(sizeof(char) * jsonSize + 1);
   int inception = 0;
@@ -242,30 +232,25 @@ seajson get_dictionary(seajson json, const char *value) {
       }
     } else if (currentChar == '\"') {
       if (prev == STRING_START) {
+        CASH STRING_END;
+        CASHUP
         if (stringProgress == strlen(value)) {
           if (strcmp(value,readString) == 0) {
             /* We might have just found the string! */
-            stringWaitingConformation = 1;
+            if (json[i+1] == ':') {
+              valueFound = 1;
+              stringProgress = 0;
+              i++;
+              continue;
+            }
           }
         }
-        CASH STRING_END;
-        CASHUP
       } else {
         if (valueFound == 0) {
           stringProgress = 0;
-          stringWaitingConformation = 0;
         }
         CASH STRING_START;
         CASHUP
-      }
-    } else if (currentChar == ':') {
-      if (prev == STRING_END && stringWaitingConformation == 1) {
-        /* HOLY FUCK, we found the string!! */
-        valueFound = 1;
-        stringProgress = 0;
-        stringWaitingConformation = 0;
-        /* continue so the : will not be added to start */
-        continue;
       }
     } else if (currentChar == '}') {
       if (valueFound == 1 && inception == 1 && inceptionInString == 0) {
@@ -311,7 +296,6 @@ seajson get_dictionary(seajson json, const char *value) {
       if (stringProgress > strlen(value)) {
         /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
         stringProgress = 0;
-        stringWaitingConformation = 0;
       } else {
         readString[stringProgress] = currentChar;
         readString[stringProgress + 1] = '\0';
@@ -910,5 +894,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 7;
+  return 8;
 }
