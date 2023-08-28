@@ -46,53 +46,25 @@ void free_json(seajson json) {
   json = NULL;
 }
 
-#define pathway char*
-
-char* init_json_pathway_cache(unsigned long sizeOfJson) {
-  pathway pathwayCache = malloc(sizeof(char) * sizeOfJson);
-  return pathwayCache;
-}
-
-void free_json_pathway_cache(pathway pathwayCache) {
-  free(pathwayCache);
-  pathwayCache = NULL;
-}
-
-char prevCached(pathway pathwayCache, int pathwayPos) {
-  if (pathwayPos < 1) {
-    /*fprintf(stderr, "SeaJSON Error: Under 1 value passed into prevCached().");*/
-    return 0;
-  }
-  return pathwayCache[pathwayPos-1];
-}
-
-#define CASH pathwayCache[pathwayPos]=
-#define CASHUP pathwayPos++;
-#define prevCachedAuto prevCached(pathwayCache, pathwayPos)
-
 /* TODO: support \'s in strings */
 char* get_string(seajson json, const char *value) {
   unsigned long jsonSize = strlen(json);
-  pathway pathwayCache = init_json_pathway_cache(jsonSize);
-  int pathwayPos = 0;
   char* readString = malloc(sizeof(char) * strlen(value) + 1);
   int stringProgress = 0;
   int valueFound = 0;
   char* returnString = malloc(sizeof(char) * jsonSize + 1);
+  char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    char prev = prevCachedAuto;
     if (currentChar == '{') {
       if (prev != STRING_START) {
-        CASH DICTIONARY_START;
-        CASHUP
+        prev = DICTIONARY_START;
       }
     } else if (currentChar == '\"') {
       if (prev == STRING_START) {
         if (valueFound == 1) {
           /* We are on the ending " so we got our string */
           free(readString);
-          free_json_pathway_cache(pathwayCache);
           return returnString;
         }
         if (stringProgress == strlen(value)) {
@@ -104,12 +76,11 @@ char* get_string(seajson json, const char *value) {
             }
           }
         }
-        CASH STRING_END;
-        CASHUP
+        prev = STRING_END;
       } else {
         stringProgress = 0;
-        CASH STRING_START;
-        CASHUP
+        prev = STRING_START;
+        continue;
       }
     }
     /*
@@ -133,30 +104,26 @@ char* get_string(seajson json, const char *value) {
   }
   free(readString);
   free(returnString);
-  free_json_pathway_cache(pathwayCache);
   return NULL;
 }
 
+/* TODO: Add negative support */
 unsigned long get_int(seajson json, const char *value) {
   unsigned long jsonSize = strlen(json);
-  pathway pathwayCache = init_json_pathway_cache(jsonSize);
-  int pathwayPos = 0;
   char* readString = malloc(sizeof(char) * strlen(value) + 1);
   int stringProgress = 0;
   int valueFound = 0;
   unsigned long returnInt = 0;
+  char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    char prev = prevCachedAuto;
     if (currentChar == '{') {
       if (prev != STRING_START) {
-        CASH DICTIONARY_START;
-        CASHUP
+        prev = DICTIONARY_START;
       }
     } else if (currentChar == '\"') {
       if (prev == STRING_START) {
-        CASH STRING_END;
-        CASHUP
+        prev = STRING_END;
         if (stringProgress == strlen(value)) {
           if (strcmp(value,readString) == 0) {
             /* We might have just found the string! */
@@ -169,8 +136,8 @@ unsigned long get_int(seajson json, const char *value) {
         }
       } else {
         stringProgress = 0;
-        CASH STRING_START;
-        CASHUP
+        prev = STRING_START;
+        continue;
       }
     }
     /*
@@ -180,27 +147,23 @@ unsigned long get_int(seajson json, const char *value) {
     if (valueFound == 1) {
       if (currentChar == '}') {
         free(readString);
-        free_json_pathway_cache(pathwayCache);
         return returnInt;
       }
       if (currentChar == '\"') {
         free(readString);
-        free_json_pathway_cache(pathwayCache);
         return returnInt;
       }
       if (currentChar == ',') {
         free(readString);
-        free_json_pathway_cache(pathwayCache);
         return returnInt;
       }
       returnInt *= 10;
       returnInt += currentChar - '0';
-    }
-    if (prev == STRING_START) {
+    } else if (prev == STRING_START) {
       if (stringProgress > strlen(value)) {
         /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
         stringProgress = 0;
-      } else if (valueFound == 0) {
+      } else {
         readString[stringProgress] = currentChar;
         readString[stringProgress + 1] = '\0';
         stringProgress++;
@@ -208,32 +171,27 @@ unsigned long get_int(seajson json, const char *value) {
     }
   }
   free(readString);
-  free_json_pathway_cache(pathwayCache);
   return 0;
 }
 
 seajson get_dictionary(seajson json, const char *value) {
   unsigned long jsonSize = strlen(json);
-  pathway pathwayCache = init_json_pathway_cache(jsonSize);
-  int pathwayPos = 0;
   char* readString = malloc(sizeof(char) * strlen(value) + 1);
   int stringProgress = 0;
   int valueFound = 0;
   char* returnString = malloc(sizeof(char) * jsonSize + 1);
   int inception = 0;
   int inceptionInString = 0;
+  char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    char prev = prevCachedAuto;
     if (currentChar == '{') {
       if (prev != STRING_START) {
-        CASH DICTIONARY_START;
-        CASHUP
+        prev = DICTIONARY_START;
       }
     } else if (currentChar == '\"') {
       if (prev == STRING_START) {
-        CASH STRING_END;
-        CASHUP
+        prev = STRING_END;
         if (stringProgress == strlen(value)) {
           if (strcmp(value,readString) == 0) {
             /* We might have just found the string! */
@@ -246,11 +204,11 @@ seajson get_dictionary(seajson json, const char *value) {
           }
         }
       } else {
+        prev = STRING_START;
         if (valueFound == 0) {
           stringProgress = 0;
+          continue;
         }
-        CASH STRING_START;
-        CASHUP
       }
     } else if (currentChar == '}') {
       if (valueFound == 1 && inception == 1 && inceptionInString == 0) {
@@ -259,7 +217,6 @@ seajson get_dictionary(seajson json, const char *value) {
         returnString[stringProgress] = '}';
         returnString[stringProgress+1] = '\0';
         free(readString);
-        free_json_pathway_cache(pathwayCache);
         return returnString;
       }
     }
@@ -305,56 +262,45 @@ seajson get_dictionary(seajson json, const char *value) {
   }
   free(readString);
   free(returnString);
-  free_json_pathway_cache(pathwayCache);
   return NULL;
 }
 
 jarray get_array(seajson json, const char *value) {
   unsigned long jsonSize = strlen(json);
-  pathway pathwayCache = init_json_pathway_cache(jsonSize);
-  int pathwayPos = 0;
   char* readString = malloc(sizeof(char) * strlen(value) + 1);
   int stringProgress = 0;
-  int stringWaitingConformation = 0;
   int valueFound = 0;
   char* returnString = malloc(sizeof(char) * jsonSize + 1);
   int inception = 0;
   int inceptionInString = 0;
   int itemCount = 0;
+  char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    char prev = prevCachedAuto;
     if (currentChar == '{') {
       if (prev != STRING_START) {
-        CASH DICTIONARY_START;
-        CASHUP
+        prev = DICTIONARY_START;
       }
     } else if (currentChar == '\"') {
       if (prev == STRING_START) {
+        prev = STRING_END;
         if (stringProgress == strlen(value)) {
           if (strcmp(value,readString) == 0) {
             /* We might have just found the string! */
-            stringWaitingConformation = 1;
+            if (json[i+1] == ':') {
+              valueFound = 1;
+              stringProgress = 0;
+              i++;
+              continue;
+            }
           }
         }
-        CASH STRING_END;
-        CASHUP
       } else {
+        prev = STRING_START;
         if (valueFound == 0) {
           stringProgress = 0;
-          stringWaitingConformation = 0;
+          continue;
         }
-        CASH STRING_START;
-        CASHUP
-      }
-    } else if (currentChar == ':') {
-      if (prev == STRING_END && stringWaitingConformation == 1) {
-        /* HOLY FUCK, we found the string!! */
-        valueFound = 1;
-        stringProgress = 0;
-        stringWaitingConformation = 0;
-        /* continue so the : will not be added to start */
-        continue;
       }
     } else if (currentChar == ']') {
       if (valueFound == 1 && inception == 1 && inceptionInString == 0) {
@@ -363,7 +309,6 @@ jarray get_array(seajson json, const char *value) {
         returnString[stringProgress] = ']';
         returnString[stringProgress+1] = '\0';
         free(readString);
-        free_json_pathway_cache(pathwayCache);
         jarray jsonArray;
         jsonArray.itemCount = itemCount;
         jsonArray.arrayString = returnString;
@@ -414,7 +359,6 @@ jarray get_array(seajson json, const char *value) {
       if (stringProgress > strlen(value)) {
         /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
         stringProgress = 0;
-        stringWaitingConformation = 0;
       } else {
         readString[stringProgress] = currentChar;
         readString[stringProgress + 1] = '\0';
@@ -424,7 +368,6 @@ jarray get_array(seajson json, const char *value) {
   }
   free(readString);
   free(returnString);
-  free_json_pathway_cache(pathwayCache);
   jarray error;
   error.itemCount = 0;
   /* Set isValid to 0 since this is an error and not a valid jarray */
@@ -894,5 +837,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 8;
+  return 9;
 }
