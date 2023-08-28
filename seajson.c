@@ -458,7 +458,7 @@ char* get_item_from_jarray(jarray array, int index) {
     fprintf(stderr, "SeaJSON Error: jarray with 0 or less items passed into get_item_from_array.\n");
     exit(1);
   }
-  if (index > array.itemCount) {
+  if (index >= array.itemCount) {
     fprintf(stderr,"SeaJSON Error: Requested OOB index from jarray.\n");
     exit(1);
   }
@@ -493,23 +493,23 @@ char* get_item_from_jarray(jarray array, int index) {
         }
       }
     }
+    char futureChar = arrayString[i+1];
     if (itemIndex == index) {
       returnItem[returnItemIndex] = currentChar;
       returnItem[returnItemIndex+1] = '\0';
       returnItemIndex++;
-      char futureChar = arrayString[i+1];
-      if ((futureChar == ',' && inception == 0 && inceptionInString == 0) || (i+1) == (strlen(arrayString)-1)) {
+      if ((futureChar == ',' && inception == 0 && inceptionInString == 0) || i == (strlen(arrayString)-2)) {
         return returnItem;
       }
-    }
-    char futureChar = arrayString[i+1];
-    if ((i+1) == (strlen(arrayString)-1)) {
-      fprintf(stderr, "SeaJSON Error: Failed to find item in array.\n");
-      exit(1);
-    }
-    if (futureChar == ',' && inception == 0 && inceptionInString == 0) {
-      i++;
-      itemIndex++;
+    } else {
+      if (i == (strlen(arrayString)-2)) {
+        fprintf(stderr, "SeaJSON Error: Failed to find item in array.\n");
+        exit(1);
+      }
+      if (futureChar == ',' && inception == 0 && inceptionInString == 0) {
+        i++;
+        itemIndex++;
+      }
     }
   }
   free(returnItem);
@@ -678,7 +678,7 @@ jarray remove_item_of_jarray(jarray array, int index) {
     fprintf(stderr, "SeaJSON Error: jarray with 0 or less items passed into remove_item_of_jarray.\n");
     exit(1);
   }
-  if (index > array.itemCount) {
+  if (index >= array.itemCount) {
     fprintf(stderr,"SeaJSON Error: Requested OOB index from jarray (remove_item_of_jarray).\n");
     exit(1);
   }
@@ -910,5 +910,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 6;
+  return 7;
 }
