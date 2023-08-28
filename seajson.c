@@ -65,6 +65,7 @@ char* get_string(seajson json, const char *value) {
         if (valueFound == 1) {
           /* We are on the ending " so we got our string */
           free(readString);
+          returnString[stringProgress] = '\0';
           return returnString;
         }
         if (stringProgress == strlen(value)) {
@@ -90,7 +91,6 @@ char* get_string(seajson json, const char *value) {
     if (prev == STRING_START) {
       if (valueFound) {
         returnString[stringProgress] = currentChar;
-        returnString[stringProgress + 1] = '\0';
         stringProgress++;
       } else if (stringProgress > strlen(value)) {
         /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
@@ -226,7 +226,6 @@ seajson get_dictionary(seajson json, const char *value) {
     */
     if (valueFound) {
       returnString[stringProgress] = currentChar;
-      returnString[stringProgress + 1] = '\0';
       stringProgress++;
       if (inceptionInString == 0) {
         if (currentChar == '{') {
@@ -322,7 +321,6 @@ jarray get_array(seajson json, const char *value) {
     */
     if (valueFound) {
       returnString[stringProgress] = currentChar;
-      returnString[stringProgress + 1] = '\0';
       stringProgress++;
       if (inceptionInString == 0) {
         if (currentChar == '{') {
@@ -423,9 +421,9 @@ char* get_item_from_jarray(jarray array, int index) {
     char futureChar = arrayString[i+1];
     if (itemIndex == index) {
       returnItem[returnItemIndex] = currentChar;
-      returnItem[returnItemIndex+1] = '\0';
       returnItemIndex++;
       if ((futureChar == ',' && inception == 0 && inceptionInString == 0) || i == (strlen(arrayString)-2)) {
+        returnItem[returnItemIndex] = '\0';
         return returnItem;
       }
     } else {
@@ -492,9 +490,9 @@ seajson remove_whitespace_from_json(seajson json) {
       }
     }
     returnJson[returnJsonIndex] = currentChar;
-    returnJson[returnJsonIndex+1] = '\0';
     returnJsonIndex++;
   }
+  returnJson[returnJsonIndex] = '\0';
   return returnJson;
 }
 
@@ -548,9 +546,9 @@ jarray remove_whitespace_from_jarray(jarray array) {
       }
     }
     returnJarrayString[returnJarrayStrIndex] = currentChar;
-    returnJarrayString[returnJarrayStrIndex+1] = '\0';
     returnJarrayStrIndex++;
   }
+  returnJarrayString[returnJarrayStrIndex] = '\0';
   jarray returnJarray;
   returnJarray.itemCount = array.itemCount;
   returnJarray.isValid = array.isValid;
@@ -642,11 +640,10 @@ jarray remove_item_of_jarray(jarray array, int index) {
     }
     if (itemIndex != index) {
       returnItem[returnItemIndex] = currentChar;
-      returnItem[returnItemIndex+1] = '\0';
       returnItemIndex++;
     }
     char futureChar = arrayString[i+1];
-    if ((i+1) == (strlen(arrayString)-1)) {
+    if (i == (strlen(arrayString)-2)) {
       returnItem[returnItemIndex] = futureChar;
       returnItem[returnItemIndex+1] = '\0';
       jarray newJarray;
@@ -660,7 +657,6 @@ jarray remove_item_of_jarray(jarray array, int index) {
       itemIndex++;
       if (itemIndex != index) {
         returnItem[returnItemIndex] = ',';
-        returnItem[returnItemIndex+1] = '\0';
         returnItemIndex++;
       }
     }
@@ -837,5 +833,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 9;
+  return 10;
 }
