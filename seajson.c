@@ -56,11 +56,7 @@ char* get_string(seajson json, const char *value) {
   char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    if (currentChar == '{') {
-      if (prev != STRING_START) {
-        prev = DICTIONARY_START;
-      }
-    } else if (currentChar == '\"') {
+    if (currentChar == '\"') {
       if (prev == STRING_START) {
         if (valueFound == 1) {
           /* We are on the ending " so we got our string */
@@ -117,11 +113,7 @@ unsigned long get_int(seajson json, const char *value) {
   char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    if (currentChar == '{') {
-      if (prev != STRING_START) {
-        prev = DICTIONARY_START;
-      }
-    } else if (currentChar == '\"') {
+    if (currentChar == '\"') {
       if (prev == STRING_START) {
         prev = STRING_END;
         if (stringProgress == strlen(value)) {
@@ -185,11 +177,7 @@ seajson get_dictionary(seajson json, const char *value) {
   char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    if (currentChar == '{') {
-      if (prev != STRING_START) {
-        prev = DICTIONARY_START;
-      }
-    } else if (currentChar == '\"') {
+    if (currentChar == '\"') {
       if (prev == STRING_START) {
         prev = STRING_END;
         if (stringProgress == strlen(value)) {
@@ -276,11 +264,7 @@ jarray get_array(seajson json, const char *value) {
   char prev = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    if (currentChar == '{') {
-      if (prev != STRING_START) {
-        prev = DICTIONARY_START;
-      }
-    } else if (currentChar == '\"') {
+    if (currentChar == '\"') {
       if (prev == STRING_START) {
         prev = STRING_END;
         if (stringProgress == strlen(value)) {
@@ -567,6 +551,7 @@ char* get_string_from_jarray(jarray array, int index) {
       /* Note the + 1 here, to have a null terminated substring */
       char *substr = (char *)calloc(1, end - start + 1);
       memcpy(substr, start, end - start);
+      free(rawItem);
       return substr;
     }
   }
@@ -833,5 +818,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 10;
+  return 11;
 }
