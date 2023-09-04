@@ -13,20 +13,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define seajson char*
+typedef char* seajson;
 
 typedef struct {
   int itemCount;
   char* arrayString;
   int isValid;
 } jarray;
-
-/* JSON Pathway Cache Types */
-
-#define DICTIONARY_START 1
-#define DICTIONARY_END 2
-#define STRING_START 3
-#define STRING_END 4
 
 /* Functions */
 
