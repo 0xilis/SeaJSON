@@ -11,6 +11,13 @@
 
 #include "seajson.h"
 
+/* JSON Pathway Cache Types */
+
+#define DICTIONARY_START 1
+#define DICTIONARY_END 2
+#define STRING_START 3
+#define STRING_END 4
+
 seajson init_json_from_file(const char *restrict filename) {
   FILE *fp = fopen(filename, "rb");
   if (fp == NULL) {
@@ -818,5 +825,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 11;
+  return 12;
 }
