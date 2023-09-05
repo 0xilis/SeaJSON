@@ -438,24 +438,13 @@ void free_jarray(jarray array) {
 
 seajson remove_whitespace_from_json(seajson json) {
   unsigned long jsonSize = strlen(json);
-  char* returnJson = malloc(sizeof(char) * jsonSize);
-  int inception = 0;
-  int inceptionInString = 0;
+  seajson returnJson = malloc(sizeof(char) * jsonSize);
   int returnJsonIndex = 0;
+  int stringInception = 0;
   for (int i = 0; i < jsonSize; i++) {
     char currentChar = json[i];
-    if (inceptionInString == 0) {
-      if (currentChar == '{') {
-        inception++;
-      } else if (currentChar == '}') {
-        inception--;
-      } else if (currentChar == '\"') {
-        inceptionInString = 1;
-      } else if (currentChar == '[') {
-        inception++;
-      } else if (currentChar == ']') {
-        inception--;
-      } else if (currentChar == '\n') {
+    if (!stringInception) {
+      if (currentChar == '\n') {
         /* Newline */
         continue;
       } else if (currentChar == ' ') {
@@ -464,15 +453,11 @@ seajson remove_whitespace_from_json(seajson json) {
       } else if (currentChar == ' ') {
         /* Tab (i think) */
         continue;
+      } else if (currentChar == '\"') {
+        stringInception = 1;
       }
-    } else {
-      /* We are currently reading chars in a string obj */
-      if (currentChar == '\"') {
-        /* If \" then cancel out */
-        if (json[i-1] != '\\') {
-          inceptionInString = 0;
-        }
-      }
+    } else if (currentChar == '\"') {
+      stringInception = 0;
     }
     returnJson[returnJsonIndex] = currentChar;
     returnJsonIndex++;
@@ -486,52 +471,10 @@ jarray remove_whitespace_from_jarray(jarray array) {
     fprintf(stderr, "SeaJSON Error: Non-valid jarray passed into removeWhitespaceFromJarray.\n");
     exit(1);
   }
-  char* arrayString = array.arrayString;
-  unsigned long arrStrSize = strlen(arrayString);
-  char* returnJarrayString = malloc(sizeof(char) * arrStrSize);
-  int inception = 0;
-  int inceptionInString = 0;
-  int returnJarrayStrIndex = 0;
-  for (int i = 0; i < arrStrSize; i++) {
-    char currentChar = arrayString[i];
-    if (inceptionInString == 0) {
-      if (currentChar == '{') {
-        inception++;
-      } else if (currentChar == '}') {
-        inception--;
-      } else if (currentChar == '\"') {
-        inceptionInString = 1;
-      } else if (currentChar == '[') {
-        inception++;
-      } else if (currentChar == ']') {
-        inception--;
-      } else if (currentChar == '\n') {
-        /* Newline */
-        continue;
-      } else if (currentChar == ' ') {
-        /* Space */
-        continue;
-      } else if (currentChar == ' ') {
-        /* Tab (i think) */
-        continue;
-      }
-    } else {
-      /* We are currently reading chars in a string obj */
-      if (currentChar == '\"') {
-        /* If \" then cancel out */
-        if (arrayString[i-1] != '\\') {
-          inceptionInString = 0;
-        }
-      }
-    }
-    returnJarrayString[returnJarrayStrIndex] = currentChar;
-    returnJarrayStrIndex++;
-  }
-  returnJarrayString[returnJarrayStrIndex] = '\0';
   jarray returnJarray;
   returnJarray.itemCount = array.itemCount;
   returnJarray.isValid = array.isValid;
-  returnJarray.arrayString = returnJarrayString;
+  returnJarray.arrayString = remove_whitespace_from_json(array.arrayString);
   return returnJarray;
 }
 
@@ -812,5 +755,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 13;
+  return 14;
 }
