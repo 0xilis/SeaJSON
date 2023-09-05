@@ -85,8 +85,8 @@ char* get_string(seajson json, const char *value) {
       } else {
         stringProgress = 0;
         prev = STRING_START;
-        continue;
       }
+      continue;
     }
     /*
     Remember that if user passes in something like "Apples"
@@ -130,15 +130,14 @@ unsigned long get_int(seajson json, const char *value) {
             if (json[i+1] == ':') {
               valueFound = 1;
               i++;
-              continue;
             }
           }
         }
       } else {
         stringProgress = 0;
         prev = STRING_START;
-        continue;
       }
+      continue;
     }
     /*
     Remember that if user passes in something like "Apples"
@@ -755,5 +754,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 14;
+  return 15;
 }
