@@ -39,6 +39,11 @@ jarray add_item_to_jarray(jarray array, char* item);
 /* Maybe soon: jarray set_item_of_jarray(jarray array, int index, char* item); */
 jarray remove_item_of_jarray(jarray array, int index);
 int seaJSONBuildVersion(void);
+seajson add_string_seajson(seajson json, char* key, char *value);
+seajson add_item_seajson(seajson json, char* key, char *value);
+int get_pos_string_seajson(seajson json, const char *value);
+seajson remove_string_seajson(seajson json, const char *key);
+jarray new_jarray(void);
 
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */
 char * getstring(char *funckey, char *dict);
