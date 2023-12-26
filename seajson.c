@@ -638,6 +638,163 @@ jarray add_item_to_jarray(jarray array, char* item) {
   return array;
 }
 
+/*
+ * ONLY supports adding. Not setting.
+ * Use this in the case where you only
+ * need to add an item to a json, as it
+ * is faster than using set_string_seajson().
+ */
+seajson add_string_seajson(seajson json, char* key, char *value) {
+  unsigned long jsonLen = strlen(json);
+  unsigned long keyLen = strlen(key);
+  unsigned long valueLen = strlen(value);
+  seajson returnJson = malloc(sizeof(char) * (jsonLen + keyLen + valueLen + 6));
+  for (int i = 0; i < jsonLen; i++) {
+    returnJson[i] = json[i];
+  }
+  returnJson[jsonLen - 1] = ',';
+  returnJson[jsonLen] = '\"';
+  for (int i = 1; i <= keyLen; i++) {
+    returnJson[i+jsonLen] = key[i-1];
+  }
+  returnJson[jsonLen+keyLen+1] = '\"';
+  returnJson[jsonLen+keyLen+2] = ':';
+  returnJson[jsonLen+keyLen+3] = '\"';
+  for (int i = 0; i < valueLen; i++) {
+    returnJson[jsonLen+keyLen+4+i] = value[i];
+  }
+  returnJson[jsonLen+keyLen+valueLen+4] = '\"';
+  returnJson[jsonLen+keyLen+valueLen+5] = '}';
+  returnJson[jsonLen+keyLen+valueLen+6] = '\0';
+  return returnJson;
+}
+
+/*
+ * ONLY supports adding. Not setting.
+ * Use this in the case where you only
+ * need to add an item to a json, as it
+ * is faster than using set_item_seajson().
+ */
+seajson add_item_seajson(seajson json, char* key, char *value) {
+  unsigned long jsonLen = strlen(json);
+  unsigned long keyLen = strlen(key);
+  unsigned long valueLen = strlen(value);
+  seajson returnJson = malloc(sizeof(char) * (jsonLen + keyLen + valueLen + 4));
+  for (int i = 0; i < jsonLen; i++) {
+    returnJson[i] = json[i];
+  }
+  returnJson[jsonLen - 1] = ',';
+  returnJson[jsonLen] = '\"';
+  for (int i = 1; i <= keyLen; i++) {
+    returnJson[i+jsonLen] = key[i-1];
+  }
+  returnJson[jsonLen+keyLen+1] = '\"';
+  returnJson[jsonLen+keyLen+2] = ':';
+  for (int i = 0; i < valueLen; i++) {
+    returnJson[jsonLen+keyLen+3+i] = value[i];
+  }
+  returnJson[jsonLen+keyLen+valueLen+3] = '}';
+  returnJson[jsonLen+keyLen+valueLen+4] = '\0';
+  return returnJson;
+}
+
+int get_pos_string_seajson(seajson json, const char *value) {
+  unsigned long jsonSize = strlen(json);
+  char* readString = malloc(sizeof(char) * strlen(value) + 1);
+  int stringProgress = 0;
+  int valueFound = 0;
+  char prev = 0;
+  for (int i = 0; i < jsonSize; i++) {
+    char currentChar = json[i];
+    if (currentChar == '\"') {
+      if (prev == STRING_START) {
+        if (valueFound == 1) {
+          /* We are on the ending " so we got our string */
+          free(readString);
+          fprintf(stderr,"SeaJSON Error: Found end of string (get_pos_string_seajson).\n");
+          return 0;
+        }
+        if (stringProgress == strlen(value)) {
+          readString[stringProgress] = '\0';
+          if (strcmp(value,readString) == 0) {
+            /* We might have just found the string! */
+            if (json[i+1] == ':') {
+              valueFound = 1;
+              i++;
+            }
+          }
+        }
+        prev = STRING_END;
+      } else {
+        stringProgress = 0;
+        prev = STRING_START;
+      }
+      continue;
+    }
+    /*
+    Remember that if user passes in something like "Apples"
+    Don't just search for apples, as 
+    */
+    if (prev == STRING_START) {
+      if (valueFound) {
+        free(readString);
+        return i;
+      } else if (stringProgress > strlen(value)) {
+        /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
+        stringProgress = 0;
+      } else {
+        readString[stringProgress] = currentChar;
+        stringProgress++;
+      }
+    }
+  }
+  free(readString);
+  return -1;
+}
+
+/* WIP!! NO INCEPTION YET!! */
+seajson remove_string_seajson(seajson json, const char *key) {
+  int stringPos = get_pos_string_seajson(json,key);
+  if (stringPos != -1) {
+    unsigned long keyLen = strlen(key);
+    unsigned long jsonLen = strlen(json);
+    unsigned long offset = (keyLen + 5);
+    stringPos -= offset;
+    seajson returnJson = malloc(sizeof(char) * (jsonLen - keyLen - 5));
+    for (int i = 0; i < stringPos; i++) {
+      returnJson[i] = json[i];
+    }
+    /* TODO: Handle if the ending " cannot be found */
+    /* TODO: HANDLE INCEPTION!! (This is really important) */
+    for (int i = stringPos + offset; i < jsonLen; i++) {
+      if (json[i] == '\"') {
+        if (json[i-1] != '\\') {
+          offset++;
+          break;
+        }
+      }
+      offset++;
+    }
+    for (int i = stringPos + offset; i < jsonLen; i++) {
+      returnJson[i-offset] = json[i];
+    }
+    returnJson[jsonLen - keyLen - 5] = '\0';
+    return returnJson;
+  } else {
+    /* key not in remove_string_seajson */
+    /* TODO: Allocate new json and return it, for now just return our pointer */
+    return json;
+  }
+}
+
+jarray new_jarray(void) {
+  jarray returnJarray;
+  returnJarray.arrayString = "[]";
+  returnJarray.itemCount = 0;
+  returnJarray.isValid = 1;
+  return returnJarray;
+}
+
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */
 char * getstring(char *funckey, char *dict) {
   printf("WARNING!!! THIS FUNCTION IS DEPRECATED AND IS INTENDED HERE ONLY FOR BACKWARDS COMPATIBILITY WITH THE OLD SEAJSON. THIS IS NOT SAFE AND BUGGY, USE get_string() INSTEAD!!! DO NOT USE THIS!!!\n");
@@ -754,5 +911,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 16;
+  return 17;
 }
