@@ -28,7 +28,7 @@ seajson init_json_from_file(const char *restrict filename) {
   long sz = ftell(fp);
   fseek(fp, 0L, SEEK_SET);
   /* sz is now the file size */
-  char *json = malloc(sizeof(char) * sz);
+  char *json = malloc(sizeof(char) * (sz + 1));
   if (json == NULL) {
     fclose(fp);
     fprintf(stderr, "SeaJSON Error: Memory allocation failed.\n");
@@ -437,7 +437,7 @@ void free_jarray(jarray array) {
 
 seajson remove_whitespace_from_json(seajson json) {
   unsigned long jsonSize = strlen(json);
-  seajson returnJson = malloc(sizeof(char) * jsonSize);
+  seajson returnJson = malloc(sizeof(char) * (jsonSize + 1));
   int returnJsonIndex = 0;
   int stringInception = 0;
   for (int i = 0; i < jsonSize; i++) {
@@ -754,5 +754,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 15;
+  return 16;
 }
