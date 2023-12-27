@@ -29,6 +29,7 @@ char* get_string(seajson json, const char *value);
 unsigned long get_int(seajson json, const char *value);
 seajson get_dictionary(seajson json, const char *value);
 jarray get_array(seajson json, const char *value);
+jarray new_jarray(void);
 char* get_item_from_jarray(jarray array, int index);
 void free_jarray(jarray array);
 seajson remove_whitespace_from_json(seajson json);
@@ -43,7 +44,9 @@ seajson add_string_seajson(seajson json, char* key, char *value);
 seajson add_item_seajson(seajson json, char* key, char *value);
 int get_pos_string_seajson(seajson json, const char *value);
 seajson remove_string_seajson(seajson json, const char *key);
-jarray new_jarray(void);
+seajson remove_item_seajson(seajson json, const char *key);
+int get_pos_item_seajson(seajson json, const char *value);
+seajson set_item_seajson(seajson json, const char *key, const char *value);
 
 /* Only kept for backwards compatibility with original SeaJSON library - THIS FUNCTION IS NOT SAFE !!!! DO NOT USE !!! */
 char * getstring(char *funckey, char *dict);
