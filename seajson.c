@@ -752,7 +752,57 @@ int get_pos_string_seajson(seajson json, const char *value) {
   return -1;
 }
 
-/* WIP!! NO INCEPTION YET!! */
+int get_pos_item_seajson(seajson json, const char *value) {
+  unsigned long jsonSize = strlen(json);
+  char* readString = malloc(sizeof(char) * strlen(value) + 1);
+  int stringProgress = 0;
+  int valueFound = 0;
+  char prev = 0;
+  for (int i = 0; i < jsonSize; i++) {
+    char currentChar = json[i];
+    if (currentChar == '\"') {
+      if (prev == STRING_START) {
+        if (valueFound == 1) {
+          /* We are on the ending " so we got our string */
+          free(readString);
+          fprintf(stderr,"SeaJSON Error: Found end of string (get_pos_string_seajson).\n");
+          return 0;
+        }
+        if (stringProgress == strlen(value)) {
+          readString[stringProgress] = '\0';
+          if (strcmp(value,readString) == 0) {
+            /* We might have just found the string! */
+            if (json[i+1] == ':') {
+              free(readString);
+              return i;
+            }
+          }
+        }
+        prev = STRING_END;
+      } else {
+        stringProgress = 0;
+        prev = STRING_START;
+      }
+      continue;
+    }
+    /*
+    Remember that if user passes in something like "Apples"
+    Don't just search for apples, as 
+    */
+    if (prev == STRING_START) {
+      if (stringProgress > strlen(value)) {
+        /* The string we are reading is bigger than the string we want - this means it is DEFINITELY not the string */
+        stringProgress = 0;
+      } else {
+        readString[stringProgress] = currentChar;
+        stringProgress++;
+      }
+    }
+  }
+  free(readString);
+  return -1;
+}
+
 seajson remove_string_seajson(seajson json, const char *key) {
   int stringPos = get_pos_string_seajson(json,key);
   if (stringPos != -1) {
@@ -765,12 +815,33 @@ seajson remove_string_seajson(seajson json, const char *key) {
       returnJson[i] = json[i];
     }
     /* TODO: Handle if the ending " cannot be found */
-    /* TODO: HANDLE INCEPTION!! (This is really important) */
+    int inception = 0;
+    int inceptionInString = 0;
     for (int i = stringPos + offset; i < jsonLen; i++) {
       if (json[i] == '\"') {
         if (json[i-1] != '\\') {
-          offset++;
-          break;
+          if (inception == 0) {
+            offset++;
+            break;
+          } else {
+            inceptionInString = !inceptionInString;
+          }
+        }
+      } else if (json[i] == '{') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == '}') {
+        if (!inceptionInString) {
+          inception--;
+        }
+      } else if (json[i] == '[') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == ']') {
+        if (!inceptionInString) {
+          inception--;
         }
       }
       offset++;
@@ -786,6 +857,202 @@ seajson remove_string_seajson(seajson json, const char *key) {
     return json;
   }
 }
+
+seajson remove_item_seajson(seajson json, const char *key) {
+  int stringPos = get_pos_item_seajson(json,key); /* TODO: This ONLY works on strings !!! */
+  if (stringPos != -1) {
+    unsigned long keyLen = strlen(key);
+    unsigned long jsonLen = strlen(json);
+    unsigned long offset = (keyLen + 5);
+    stringPos -= offset;
+    seajson returnJson = malloc(sizeof(char) * (jsonLen - keyLen - 5));
+    for (int i = 0; i < stringPos; i++) {
+      returnJson[i] = json[i];
+    }
+    /* TODO: Handle if the ending " cannot be found */
+    int inception = 0;
+    int inceptionInString = 0;
+    for (int i = stringPos + offset; i < jsonLen; i++) {
+      if (json[i] == '\"') {
+        if (json[i-1] != '\\') {
+          if (inception == 0) {
+            offset++;
+            break;
+          } else {
+            inceptionInString = !inceptionInString;
+          }
+        }
+      } else if (json[i] == '{') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == '}') {
+        if (!inceptionInString) {
+          inception--;
+        }
+      } else if (json[i] == '[') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == ']') {
+        if (!inceptionInString) {
+          inception--;
+        }
+      } else if (json[i] == ',') {
+        if (!inceptionInString) {
+          if (inception == 0) {
+            offset++;
+            break;
+          }
+        }
+      }
+      offset++;
+    }
+    for (int i = stringPos + offset; i < jsonLen; i++) {
+      returnJson[i-offset] = json[i];
+    }
+    returnJson[jsonLen - keyLen - 5] = '\0';
+    return returnJson;
+  } else {
+    /* key not in remove_string_seajson */
+    /* TODO: Allocate new json and return it, for now just return our pointer */
+    return json;
+  }
+}
+
+seajson set_item_seajson(seajson json, const char *key, const char *value) {
+  int stringPos = get_pos_item_seajson(json,key); /* TODO: This ONLY works on strings !!! */
+  if (stringPos != -1) {
+    unsigned long keyLen = strlen(key);
+    unsigned long valueLen = strlen(value);
+    unsigned long jsonLen = strlen(json);
+    unsigned long offset = 0;
+    stringPos += 2;
+    seajson returnJson = malloc(sizeof(char) * (jsonLen + keyLen + valueLen + 6));
+    for (int i = 0; i < stringPos; i++) {
+      returnJson[i] = json[i];
+    }
+    /* TODO: Handle if the ending " cannot be found */
+    int inception = 0;
+    int inceptionInString = 0;
+    for (int i = stringPos; i < jsonLen; i++) {
+      if (json[i] == '\"') {
+        if (json[i-1] != '\\') {
+          inceptionInString = !inceptionInString;
+        }
+      } else if (json[i] == '{') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == '}') {
+        if (!inceptionInString) {
+          if (inception == 0) {
+            break;
+          }
+          inception--;
+        }
+      } else if (json[i] == '[') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == ']') {
+        if (!inceptionInString) {
+          inception--;
+        }
+      } else if (json[i] == ',') {
+        if (!inceptionInString) {
+          if (inception == 0) {
+            break;
+          }
+        }
+      }
+      offset++;
+    }
+    /* Copy value to returnJson */
+    for (int i = 0; i < valueLen; i++) {
+      returnJson[i+stringPos] = value[i];
+    }
+    /* Copy rest of json */
+    for (int i = stringPos + offset; i < jsonLen; i++) {
+      returnJson[(i-offset)+valueLen] = json[i];
+    }
+    /* TODO: NULL terminate returnJson */
+    return returnJson;
+  } else {
+    /* key not in remove_string_seajson, call add_item_seajson */
+    return add_item_seajson(json, key, value);
+  }
+}
+
+#if 0
+
+/* from a failed attempt to make set_item_seajson, I made a function which renames a key... */
+seajson set_item_seajson(seajson json, const char *key, const char *value) {
+  int stringPos = get_pos_item_seajson(json,key); /* TODO: This ONLY works on strings !!! */
+  if (stringPos != -1) {
+    unsigned long keyLen = strlen(key);
+    unsigned long valueLen = strlen(value);
+    unsigned long jsonLen = strlen(json);
+    unsigned long offset = 0;
+    seajson returnJson = malloc(sizeof(char) * (jsonLen + keyLen + valueLen + 6));
+    for (int i = 0; i < stringPos; i++) {
+      returnJson[i] = json[i];
+    }
+    /* TODO: Handle if the ending " cannot be found */
+    int inception = 0;
+    int inceptionInString = 0;
+    for (int i = stringPos; i < jsonLen; i++) {
+      if (json[i] == '\"') {
+        if (json[i-1] != '\\') {
+          if (inception == 0) {
+            offset++;
+            break;
+          } else {
+            inceptionInString = !inceptionInString;
+          }
+        }
+      } else if (json[i] == '{') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == '}') {
+        if (!inceptionInString) {
+          inception--;
+        }
+      } else if (json[i] == '[') {
+        if (!inceptionInString) {
+          inception++;
+        }
+      } else if (json[i] == ']') {
+        if (!inceptionInString) {
+          inception--;
+        }
+      } else if (json[i] == ',') {
+        if (!inceptionInString) {
+          if (inception == 0) {
+            offset++;
+            break;
+          }
+        }
+      }
+      offset++;
+    }
+    /* Copy value to returnJson */
+    for (int i = 0; i < valueLen; i++) {
+      returnJson[i+stringPos] = value[i];
+    }
+    /* Copy rest of json */
+    for (int i = stringPos + offset; i < jsonLen; i++) {
+      returnJson[(i-offset)+valueLen] = json[i];
+    }
+    /* TODO: NULL terminate returnJson */
+    return returnJson;
+  } else {
+    /* key not in remove_string_seajson, call add_item_seajson */
+    return add_item_seajson(json, key, value);
+  }
+}
+#endif
 
 jarray new_jarray(void) {
   jarray returnJarray;
@@ -911,5 +1178,5 @@ char * getstring(char *funckey, char *dict) {
 
 /* Just a function to return SeaJSON build version in case a program ever needs to check */
 int seaJSONBuildVersion(void) {
-  return 17;
+  return 18;
 }
